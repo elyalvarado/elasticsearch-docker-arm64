@@ -30,11 +30,9 @@ RUN groupadd -g 1000 elasticsearch && \
 
 WORKDIR /usr/share/elasticsearch
 
-RUN cd /opt && curl --retry 8 -s -L -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.4.3.tar.gz && cd -
+RUN cd /opt && curl --retry 8 -s -L -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.8.21.tar.gz && cd -
 
-RUN tar zxf /opt/elasticsearch-6.4.3.tar.gz --strip-components=1
-RUN elasticsearch-plugin install --batch ingest-geoip
-RUN elasticsearch-plugin install --batch ingest-user-agent
+RUN tar zxf /opt/elasticsearch-6.8.21.tar.gz --strip-components=1
 RUN mkdir -p config data logs
 RUN chmod 0775 config data logs
 COPY config/elasticsearch.yml config/log4j2.properties config/
@@ -54,7 +52,8 @@ COPY --from=builder /opt/jdk-11.0.1 /opt/jdk-11.0.1
 
 RUN yum update -y && \
     yum install -y nc unzip wget which && \
-    yum clean all
+    yum clean all && \
+    rm -rf /var/cache/yum
 
 RUN groupadd -g 1000 elasticsearch && \
     adduser -u 1000 -g 1000 -G 0 -d /usr/share/elasticsearch elasticsearch && \
@@ -81,7 +80,7 @@ EXPOSE 9200 9300
 LABEL org.label-schema.schema-version="1.0" \
   org.label-schema.vendor="Elastic" \
   org.label-schema.name="elasticsearch" \
-  org.label-schema.version="6.4.3" \
+  org.label-schema.version="6.8.21" \
   org.label-schema.url="https://www.elastic.co/products/elasticsearch" \
   org.label-schema.vcs-url="https://github.com/elastic/elasticsearch" \
   license="Elastic License"
