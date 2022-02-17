@@ -4,7 +4,9 @@ Built by backporting the 7.12 ARM64 Dockerfile and copying the JDK from the 7.12
 
 # Building the image
 ```
-docker build . -t elyalvarado/elasticsearch:6.8
+docker build . -t public.ecr.aws/c2m6n8k8/elasticsearch-arm:6.8
+aws ecr-public get-login-password --region=us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+docker push public.ecr.aws/c2m6n8k8/elasticsearch-arm:6.8
 ```
 
 # Running the image
