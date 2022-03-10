@@ -7,6 +7,13 @@ Built by backporting the 7.12 ARM64 Dockerfile and copying the JDK from the 7.12
 docker build . -t elasticsearch-arm:6.8
 ```
 
+# Running the image
+To run it:
+
+```
+docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node"  -e "xpack.ml.enabled=false" elasticsearch-arm:6.8
+```
+
 # Publish the image to Github Registry
 ```
 docker tag elasticsearch-arm:6.8 ghcr.io/Baladins/elasticsearch-arm:6.8
@@ -19,11 +26,4 @@ docker push ghcr.io/baladins/elasticsearch-docker-arm64:6.8
 docker tag elasticsearch-arm:6.8 public.ecr.aws/c2m6n8k8/elasticsearch-arm:6.8
 aws ecr-public get-login-password --region=us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 docker push public.ecr.aws/c2m6n8k8/elasticsearch-arm:6.8
-```
-
-# Running the image
-To run it:
-
-```
-docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node"  -e "xpack.ml.enabled=false" elyalvarado/elasticsearch:6.8
 ```
