@@ -7,6 +7,12 @@ Built by backporting the 7.12 ARM64 Dockerfile and copying the JDK from the 7.12
 docker build . -t elasticsearch-arm:6.8
 ```
 
+# Get image from Github Registry
+```
+docker pull ghcr.io/baladins/elasticsearch-docker-arm64:6.8.24
+docker tag ghcr.io/baladins/elasticsearch-docker-arm64:6.8.24 elasticsearch-arm:6.8
+```
+
 # Running the image
 To run it:
 
