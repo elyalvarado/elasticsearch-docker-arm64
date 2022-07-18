@@ -9,7 +9,7 @@
 # Extract Elasticsearch artifact
 ################################################################################
 
-FROM centos:8 AS builder
+FROM registry.access.redhat.com/ubi8/ubi:latest AS builder
 
 # `tini` is a tiny but valid init for containers. This is used to cleanly
 # control how ES and any child processes are shut down.
@@ -35,12 +35,12 @@ RUN mkdir /usr/share/elasticsearch
 
 WORKDIR /usr/share/elasticsearch
 
-COPY elasticsearch-6.8.16-SNAPSHOT-linux-aarch64.tar.gz /opt/
-
-RUN tar zxf /opt/elasticsearch-6.8.16-SNAPSHOT-linux-aarch64.tar.gz --strip-components=1
+RUN cd /tmp && \
+    curl -O https://s3-eu-central-1.amazonaws.com/scientist-artifacts/elasticsearch/elasticsearch-oss-6.8.24-SNAPSHOT-linux-aarch64.tar.gz && \
+    tar xzvf elasticsearch-oss-6.8.24-SNAPSHOT-linux-aarch64.tar.gz --strip-components=1 -C /usr/share/elasticsearch && \
+    rm elasticsearch-oss-6.8.24-SNAPSHOT-linux-aarch64.tar.gz
 RUN grep ES_DISTRIBUTION_TYPE=tar /usr/share/elasticsearch/bin/elasticsearch-env \
-    && sed -ie 's/ES_DISTRIBUTION_TYPE=tar/ES_DISTRIBUTION_TYPE=docker/' /usr/share/elasticsearch/bin/elasticsearch-env \
-    && find ./jdk -type d -exec chmod 0755 {} + 
+    && sed -ie 's/ES_DISTRIBUTION_TYPE=tar/ES_DISTRIBUTION_TYPE=docker/' /usr/share/elasticsearch/bin/elasticsearch-env
 RUN mkdir -p config data logs
 RUN chmod 0775 config data logs
 COPY config/elasticsearch.yml config/log4j2.properties config/
@@ -52,14 +52,14 @@ COPY config/elasticsearch.yml config/log4j2.properties config/
 # Add entrypoint
 ################################################################################
 
-FROM centos:8
+FROM registry.access.redhat.com/ubi8/ubi
 
 ENV JAVA_HOME /usr/share/elasticsearch/jdk
 
 RUN for iter in {1..10}; do \
       yum update --setopt=tsflags=nodocs -y && \
       yum install --setopt=tsflags=nodocs -y \
-      nc shadow-utils zip unzip  && \
+      nc shadow-utils zip unzip java-11-openjdk  && \
       yum clean all && \
       exit_code=0 && break || \
         exit_code=$? && echo "yum error: retry $iter in 10s" && sleep 10; \
@@ -72,7 +72,6 @@ RUN groupadd -g 1000 elasticsearch && \
     chown -R 1000:0 /usr/share/elasticsearch
 
 ENV ELASTIC_CONTAINER true
-
 
 WORKDIR /usr/share/elasticsearch
 COPY --from=builder --chown=1000:0 /usr/share/elasticsearch /usr/share/elasticsearch
@@ -91,8 +90,8 @@ COPY bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 #    REF: https://github.com/elastic/elasticsearch-docker/issues/171
 RUN chmod g=u /etc/passwd && \
     chmod 0775 /usr/local/bin/docker-entrypoint.sh && \
-    find / -xdev -perm -4000 -exec chmod ug-s {} + && \
-    ln -sf /etc/pki/ca-trust/extracted/java/cacerts /usr/share/elasticsearch/jdk/lib/security/cacerts
+    find / -xdev -perm -4000 -exec chmod ug-s {} +
+#    && ln -sf /etc/pki/ca-trust/extracted/java/cacerts /usr/share/elasticsearch/jdk/lib/security/cacerts
 
 EXPOSE 9200 9300
 
@@ -106,7 +105,7 @@ LABEL org.label-schema.build-date="2021-05-11T13:32:43.325594Z" \
   org.label-schema.vcs-ref="103f38cad814fb566f91d2c75828b835b910eab0" \
   org.label-schema.vcs-url="https://github.com/elastic/elasticsearch" \
   org.label-schema.vendor="Elastic" \
-  org.label-schema.version="6.8.16-SNAPSHOT" \
+  org.label-schema.version="6.8.24-SNAPSHOT" \
   org.opencontainers.image.created="2021-05-11T13:32:43.325594Z" \
   org.opencontainers.image.documentation="https://www.elastic.co/guide/en/elasticsearch/reference/index.html" \
   org.opencontainers.image.licenses="Elastic-License" \
@@ -115,8 +114,10 @@ LABEL org.label-schema.build-date="2021-05-11T13:32:43.325594Z" \
   org.opencontainers.image.title="Elasticsearch" \
   org.opencontainers.image.url="https://www.elastic.co/products/elasticsearch" \
   org.opencontainers.image.vendor="Elastic" \
-  org.opencontainers.image.version="6.8.16-SNAPSHOT"
+  org.opencontainers.image.version="6.8.24-SNAPSHOT"
 
+# Hack to remove intel Avx flags
+RUN sed -e '/UseAVX/ s/^#*/#/' -i /usr/share/elasticsearch/config/jvm.options
 
 ENTRYPOINT ["/bin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
 # Dummy overridable parameter parsed by entrypoint
