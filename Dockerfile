@@ -20,9 +20,9 @@ FROM centos:8 AS builder
 RUN set -eux ; \
     tini_bin="" ; \
     case "$(arch)" in \
-        aarch64) tini_bin='tini-arm64' ;; \
-        x86_64)  tini_bin='tini-amd64' ;; \
-        *) echo >&2 ; echo >&2 "Unsupported architecture $(arch)" ; echo >&2 ; exit 1 ;; \
+    aarch64) tini_bin='tini-arm64' ;; \
+    x86_64)  tini_bin='tini-amd64' ;; \
+    *) echo >&2 ; echo >&2 "Unsupported architecture $(arch)" ; echo >&2 ; exit 1 ;; \
     esac ; \
     curl --retry 10 -S -L -O https://github.com/krallin/tini/releases/download/v0.19.0/${tini_bin} ; \
     curl --retry 10 -S -L -O https://github.com/krallin/tini/releases/download/v0.19.0/${tini_bin}.sha256sum ; \
@@ -56,15 +56,19 @@ FROM centos:8
 
 ENV JAVA_HOME /usr/share/elasticsearch/jdk
 
-RUN for iter in {1..10}; do \
-      yum update --setopt=tsflags=nodocs -y && \
-      yum install --setopt=tsflags=nodocs -y \
-      nc shadow-utils zip unzip  && \
-      yum clean all && \
-      exit_code=0 && break || \
-        exit_code=$? && echo "yum error: retry $iter in 10s" && sleep 10; \
-    done; \
-    exit $exit_code
+WORKDIR /etc/yum.repos.d/
+
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* && \
+    yum update -y
+
+WORKDIR /usr/share/elasticsearch
+
+
+RUN yum update --setopt=tsflags=nodocs -y && \
+    yum install --setopt=tsflags=nodocs -y \
+    nc shadow-utils zip unzip  && \
+    yum clean all
 
 RUN groupadd -g 1000 elasticsearch && \
     adduser -u 1000 -g 1000 -G 0 -d /usr/share/elasticsearch elasticsearch && \
@@ -98,24 +102,24 @@ EXPOSE 9200 9300
 
 
 LABEL org.label-schema.build-date="2021-05-11T13:32:43.325594Z" \
-  org.label-schema.license="Elastic-License" \
-  org.label-schema.name="Elasticsearch" \
-  org.label-schema.schema-version="1.0" \
-  org.label-schema.url="https://www.elastic.co/products/elasticsearch" \
-  org.label-schema.usage="https://www.elastic.co/guide/en/elasticsearch/reference/index.html" \
-  org.label-schema.vcs-ref="103f38cad814fb566f91d2c75828b835b910eab0" \
-  org.label-schema.vcs-url="https://github.com/elastic/elasticsearch" \
-  org.label-schema.vendor="Elastic" \
-  org.label-schema.version="6.8.16-SNAPSHOT" \
-  org.opencontainers.image.created="2021-05-11T13:32:43.325594Z" \
-  org.opencontainers.image.documentation="https://www.elastic.co/guide/en/elasticsearch/reference/index.html" \
-  org.opencontainers.image.licenses="Elastic-License" \
-  org.opencontainers.image.revision="103f38cad814fb566f91d2c75828b835b910eab0" \
-  org.opencontainers.image.source="https://github.com/elastic/elasticsearch" \
-  org.opencontainers.image.title="Elasticsearch" \
-  org.opencontainers.image.url="https://www.elastic.co/products/elasticsearch" \
-  org.opencontainers.image.vendor="Elastic" \
-  org.opencontainers.image.version="6.8.16-SNAPSHOT"
+    org.label-schema.license="Elastic-License" \
+    org.label-schema.name="Elasticsearch" \
+    org.label-schema.schema-version="1.0" \
+    org.label-schema.url="https://www.elastic.co/products/elasticsearch" \
+    org.label-schema.usage="https://www.elastic.co/guide/en/elasticsearch/reference/index.html" \
+    org.label-schema.vcs-ref="103f38cad814fb566f91d2c75828b835b910eab0" \
+    org.label-schema.vcs-url="https://github.com/elastic/elasticsearch" \
+    org.label-schema.vendor="Elastic" \
+    org.label-schema.version="6.8.16-SNAPSHOT" \
+    org.opencontainers.image.created="2021-05-11T13:32:43.325594Z" \
+    org.opencontainers.image.documentation="https://www.elastic.co/guide/en/elasticsearch/reference/index.html" \
+    org.opencontainers.image.licenses="Elastic-License" \
+    org.opencontainers.image.revision="103f38cad814fb566f91d2c75828b835b910eab0" \
+    org.opencontainers.image.source="https://github.com/elastic/elasticsearch" \
+    org.opencontainers.image.title="Elasticsearch" \
+    org.opencontainers.image.url="https://www.elastic.co/products/elasticsearch" \
+    org.opencontainers.image.vendor="Elastic" \
+    org.opencontainers.image.version="6.8.16-SNAPSHOT"
 
 
 ENTRYPOINT ["/bin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
